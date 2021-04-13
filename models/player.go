@@ -27,6 +27,7 @@ type Player struct {
 	HorizontalAngle         float32
 	HorizontalAngleSpeed    float32
 	Name                    string
+	hp                      int
 
 	moves Moves
 	world *World
@@ -59,6 +60,7 @@ func NewPlayer(world *World, name string, position math32.Vector3) *Player {
 		HorizontalAngle:         0,
 		VerticalAngleAngleSpeed: 0,
 		HorizontalAngleSpeed:    0,
+		hp:                      100,
 	}
 	player.moves = newMoves()
 	player.world = world
@@ -134,7 +136,7 @@ func (p *Player) updateMoves() {
 }
 
 func (p *Player) Fire() {
-	bullet := NewBullet(p, p.Direction.Clone().MultiplyScalar(0.1))
+	bullet := NewBullet(p.world, p, p.Direction.Clone().MultiplyScalar(.5))
 	p.world.AddBullet(bullet)
 }
 
@@ -148,4 +150,17 @@ func (p *Player) Update(deltaTime time.Duration) {
 	p.Velocity.MultiplyScalar(0.8)
 	p.VerticalAngle *= 0.8
 	p.HorizontalAngle *= 0.8
+}
+
+func (b Player) IsDeleted() bool {
+	return false
+}
+
+func (b Player) GetID() string {
+	return b.Name
+}
+
+func (p Player) GetHitBox() *math32.Box3 {
+	hitBox := math32.NewBox3(p.Position.Sub(math32.NewVector3(0.5, 0.5, 0)), p.Position.Add(math32.NewVector3(0.5, 0.5, 0)))
+	return hitBox
 }

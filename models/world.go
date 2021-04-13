@@ -1,19 +1,21 @@
 package models
 
 import (
+	"fmt"
 	"time"
 )
 
 type World struct {
 	Player        *Player
 	players       map[string]*Player
-	bullets       []*Bullet
+	models        map[string]Model
 	eventListener EventListener
 }
 
 type EventListener interface {
 	OnAddPlayer(player *Player)
 	OnAddBullet(bullet *Bullet)
+	OnRemoveModel(model Model)
 }
 
 func (w *World) SubscribeEventListener(e EventListener) {
@@ -33,11 +35,16 @@ func (w *World) AddPlayer(player *Player) {
 	}
 }
 
+func (w *World) BulletHitsPlayer(bullet *Bullet, player *Player) {
+	player.hp -= bullet.hp
+	fmt.Println("hit player hp :", player.hp)
+}
+
 func (w *World) AddBullet(bullet *Bullet) {
-	if w.bullets == nil {
-		w.bullets = make([]*Bullet, 0)
+	if w.models == nil {
+		w.models = make(map[string]Model)
 	}
-	w.bullets = append(w.bullets, bullet)
+	w.models[bullet.ID] = bullet
 	if w.eventListener != nil {
 		w.eventListener.OnAddBullet(bullet)
 	}
@@ -47,4 +54,18 @@ func (w *World) Update(deltaTime time.Duration) {
 	for _, player := range w.players {
 		player.Update(deltaTime)
 	}
+
+	models := make(map[string]Model)
+
+	for _, model := range w.models {
+		model.Update(deltaTime)
+		if !model.IsDeleted() {
+			models[model.GetID()] = model
+		} else {
+			if w.eventListener != nil {
+				w.eventListener.OnRemoveModel(model)
+			}
+		}
+	}
+	w.models = models
 }

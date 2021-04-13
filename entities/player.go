@@ -29,3 +29,7 @@ func NewPlayer(model *models.Player) *Player {
 func (p *Player) Update() {
 	p.Mesh.SetPositionVec(p.model.Position)
 }
+
+func (p Player) GetMesh() *graphic.Mesh {
+	return p.Mesh
+}

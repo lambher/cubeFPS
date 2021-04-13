@@ -1,6 +1,8 @@
 package game
 
 import (
+	"fmt"
+	"runtime"
 	"time"
 
 	"github.com/lambher/video-game/entities"
@@ -24,33 +26,56 @@ import (
 )
 
 type Game struct {
-	world models.World
+	world *models.World
 	app   *app.Application
 	scene *core.Node
 	cam   *camera.Camera
 
-	//mouseVelocity *math32.Vector2
 	mousePosition *math32.Vector2
 
-	players []*entities.Player
+	entities map[string]entities.Entity
 }
 
 func (g *Game) OnAddPlayer(player *models.Player) {
 	if player == g.world.Player {
 		return
 	}
-	if g.players == nil {
-		g.players = make([]*entities.Player, 0)
+	if g.entities == nil {
+		g.entities = make(map[string]entities.Entity)
 	}
 
 	entity := entities.NewPlayer(player)
-	g.players = append(g.players, entity)
+	g.entities[player.GetID()] = entity
 
 	g.scene.Add(entity)
 }
 
-func (g *Game) OnAddBullet(bullet *models.Bullet) {
+func PrintMemUsage() {
+	var m runtime.MemStats
+	runtime.ReadMemStats(&m)
+	// For info on each, see: https://golang.org/pkg/runtime/#MemStats
+	fmt.Printf("Alloc = %v MiB", bToMb(m.Alloc))
+	fmt.Printf("\tTotalAlloc = %v MiB", bToMb(m.TotalAlloc))
+	fmt.Printf("\tSys = %v MiB", bToMb(m.Sys))
+	fmt.Printf("\tNumGC = %v\n", m.NumGC)
+}
 
+func bToMb(b uint64) uint64 {
+	return b / 1024 / 1024
+}
+
+func (g *Game) OnAddBullet(bullet *models.Bullet) {
+	entity := entities.NewBullet(bullet)
+	g.entities[bullet.GetID()] = entity
+
+	g.scene.Add(entity.Mesh)
+}
+
+func (g *Game) OnRemoveModel(model models.Model) {
+	if entity, ok := g.entities[model.GetID()]; ok {
+		g.scene.Remove(entity.GetMesh())
+		delete(g.entities, model.GetID())
+	}
 }
 
 func (g *Game) AddPlayer(player *models.Player) {
@@ -58,6 +83,7 @@ func (g *Game) AddPlayer(player *models.Player) {
 }
 
 func (g *Game) Init() {
+	g.world = &models.World{}
 	g.world.SubscribeEventListener(g)
 
 	g.app = app.App()
@@ -65,7 +91,7 @@ func (g *Game) Init() {
 	gui.Manager().Set(g.scene)
 	window.Get().(*window.GlfwWindow).SetFullscreen(true)
 
-	newPlayer := models.NewPlayer(&g.world, "Lambert", math32.Vector3{
+	newPlayer := models.NewPlayer(g.world, "Lambert", math32.Vector3{
 		X: 0,
 		Y: 0,
 		Z: 3,
@@ -75,7 +101,7 @@ func (g *Game) Init() {
 
 	g.AddPlayer(newPlayer)
 
-	g.AddPlayer(models.NewPlayer(&g.world, "Milande", math32.Vector3{
+	g.AddPlayer(models.NewPlayer(g.world, "Milande", math32.Vector3{
 		X: 0,
 		Y: 0,
 		Z: 3,
@@ -141,7 +167,7 @@ func (g *Game) Init() {
 	g.app.Gls().ClearColor(0.5, 0.5, 0.5, 1.0)
 }
 
-func (g Game) Run() {
+func (g *Game) Run() {
 	// Run the application
 	g.app.Run(func(renderer *renderer.Renderer, deltaTime time.Duration) {
 		g.update(deltaTime)
@@ -250,7 +276,7 @@ func (g *Game) listenEvent() {
 }
 
 func (g *Game) resetPlayer() {
-	g.world.Player = models.NewPlayer(&g.world, "Lambert", math32.Vector3{
+	g.world.Player = models.NewPlayer(g.world, "Lambert", math32.Vector3{
 		X: 0,
 		Y: 0,
 		Z: 3,
@@ -266,7 +292,7 @@ func (g *Game) update(deltaTime time.Duration) {
 	g.mousePosition = math32.NewVector2(float32(x/2), float32(y/2))
 	g.app.IWindow.(*window.GlfwWindow).SetCursorPos(float64(g.mousePosition.X), float64(g.mousePosition.Y))
 
-	for _, player := range g.players {
-		player.Update()
+	for _, entity := range g.entities {
+		entity.Update()
 	}
 }
