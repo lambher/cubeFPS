@@ -2,6 +2,7 @@ package game
 
 import (
 	"fmt"
+	"os"
 	"runtime"
 	"time"
 
@@ -47,7 +48,13 @@ func (g *Game) OnAddPlayer(player *models.Player) {
 	entity := entities.NewPlayer(player)
 	g.entities[player.GetID()] = entity
 
-	g.scene.Add(entity)
+	g.scene.Add(entity.Mesh)
+}
+
+func (g *Game) OnPlayerHit(player *models.Player) {
+	if p, ok := g.entities[player.GetID()].(*entities.Player); ok {
+		p.Hit()
+	}
 }
 
 func PrintMemUsage() {
@@ -73,6 +80,9 @@ func (g *Game) OnAddBullet(bullet *models.Bullet) {
 
 func (g *Game) OnRemoveModel(model models.Model) {
 	if entity, ok := g.entities[model.GetID()]; ok {
+		//if player, ok := entity.(*entities.Player); ok {
+		//
+		//}
 		g.scene.Remove(entity.GetMesh())
 		delete(g.entities, model.GetID())
 	}
@@ -111,6 +121,25 @@ func (g *Game) Init() {
 	g.cam.SetPositionVec(newPlayer.Position)
 	g.cam.SetDirectionVec(newPlayer.Direction)
 	g.scene.Add(g.cam)
+
+	skybox, err := graphic.NewSkybox(graphic.SkyboxData{
+		DirAndPrefix: "./assets/textures/skyboxes/lambert/",
+		Extension:    "png",
+		Suffixes: [6]string{
+			"right",
+			"left",
+			"top",
+			"bottom",
+			"front",
+			"back",
+		},
+	})
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	}
+
+	g.scene.Add(skybox)
 
 	//fmt.Println(glfw.CursorMode)
 

@@ -34,12 +34,12 @@ func (b *Bullet) Update(deltaTime time.Duration) {
 	for _, player := range b.world.players {
 		if player != b.Player {
 			if player.GetHitBox().ContainsPoint(b.Position) {
-				b.world.BulletHitsPlayer(b, player)
+				player.BulletHit(b)
 				b.deleted = true
 			}
 		}
 	}
-	if b.Position.Length() > 10 {
+	if b.Position.Length() > 100 {
 		b.deleted = true
 	}
 }

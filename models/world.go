@@ -1,7 +1,6 @@
 package models
 
 import (
-	"fmt"
 	"time"
 )
 
@@ -14,6 +13,7 @@ type World struct {
 
 type EventListener interface {
 	OnAddPlayer(player *Player)
+	OnPlayerHit(player *Player)
 	OnAddBullet(bullet *Bullet)
 	OnRemoveModel(model Model)
 }
@@ -29,15 +29,10 @@ func (w *World) AddPlayer(player *Player) {
 	if w.Player == nil {
 		w.Player = player
 	}
-	w.players[player.Name] = player
+	w.players[player.GetID()] = player
 	if w.eventListener != nil {
 		w.eventListener.OnAddPlayer(player)
 	}
-}
-
-func (w *World) BulletHitsPlayer(bullet *Bullet, player *Player) {
-	player.hp -= bullet.hp
-	fmt.Println("hit player hp :", player.hp)
 }
 
 func (w *World) AddBullet(bullet *Bullet) {
@@ -50,10 +45,23 @@ func (w *World) AddBullet(bullet *Bullet) {
 	}
 }
 
+func (w *World) removeModel(model Model) {
+	if w.eventListener != nil {
+		w.eventListener.OnRemoveModel(model)
+	}
+}
+
 func (w *World) Update(deltaTime time.Duration) {
+	players := make(map[string]*Player)
 	for _, player := range w.players {
 		player.Update(deltaTime)
+		if !player.IsDeleted() {
+			players[player.GetID()] = player
+		} else {
+			w.removeModel(player)
+		}
 	}
+	w.players = players
 
 	models := make(map[string]Model)
 
@@ -62,9 +70,7 @@ func (w *World) Update(deltaTime time.Duration) {
 		if !model.IsDeleted() {
 			models[model.GetID()] = model
 		} else {
-			if w.eventListener != nil {
-				w.eventListener.OnRemoveModel(model)
-			}
+			w.removeModel(model)
 		}
 	}
 	w.models = models

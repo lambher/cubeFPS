@@ -1,6 +1,7 @@
 package models
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/g3n/engine/math32"
@@ -28,6 +29,7 @@ type Player struct {
 	HorizontalAngleSpeed    float32
 	Name                    string
 	hp                      int
+	deleted                 bool
 
 	moves Moves
 	world *World
@@ -61,6 +63,7 @@ func NewPlayer(world *World, name string, position math32.Vector3) *Player {
 		VerticalAngleAngleSpeed: 0,
 		HorizontalAngleSpeed:    0,
 		hp:                      100,
+		deleted:                 false,
 	}
 	player.moves = newMoves()
 	player.world = world
@@ -152,15 +155,25 @@ func (p *Player) Update(deltaTime time.Duration) {
 	p.HorizontalAngle *= 0.8
 }
 
-func (b Player) IsDeleted() bool {
-	return false
+func (p Player) IsDeleted() bool {
+	return p.deleted
 }
 
 func (b Player) GetID() string {
 	return b.Name
 }
 
-func (p Player) GetHitBox() *math32.Box3 {
-	hitBox := math32.NewBox3(p.Position.Sub(math32.NewVector3(0.5, 0.5, 0)), p.Position.Add(math32.NewVector3(0.5, 0.5, 0)))
-	return hitBox
+func (p Player) GetHitBox() *math32.Sphere {
+	return math32.NewSphere(p.Position, 1)
+}
+
+func (p *Player) BulletHit(bullet *Bullet) {
+	p.hp -= bullet.hp
+	if p.hp <= 0 {
+		p.deleted = true
+	}
+	fmt.Println(p.hp)
+	if p.world.eventListener != nil {
+		p.world.eventListener.OnPlayerHit(p)
+	}
 }
