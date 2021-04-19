@@ -14,12 +14,10 @@ import (
 	"github.com/g3n/engine/app"
 	"github.com/g3n/engine/camera"
 	"github.com/g3n/engine/core"
-	"github.com/g3n/engine/geometry"
 	"github.com/g3n/engine/gls"
 	"github.com/g3n/engine/graphic"
 	"github.com/g3n/engine/gui"
 	"github.com/g3n/engine/light"
-	"github.com/g3n/engine/material"
 	"github.com/g3n/engine/math32"
 	"github.com/g3n/engine/renderer"
 	"github.com/g3n/engine/util/helper"
@@ -114,7 +112,17 @@ func (g *Game) Init() {
 	g.AddPlayer(models.NewPlayer(g.world, "Milande", math32.Vector3{
 		X: 0,
 		Y: 0,
-		Z: 3,
+		Z: -3,
+	}))
+	g.AddPlayer(models.NewPlayer(g.world, "Etienne", math32.Vector3{
+		X: 0,
+		Y: 3,
+		Z: -3,
+	}))
+	g.AddPlayer(models.NewPlayer(g.world, "Patrick", math32.Vector3{
+		X: -3,
+		Y: 3,
+		Z: -3,
 	}))
 
 	g.cam = camera.New(1)
@@ -155,33 +163,15 @@ func (g *Game) Init() {
 	g.app.Subscribe(window.OnWindowSize, onResize)
 	onResize("", nil)
 
-	// Create a blue torus and add it to the scene
-	geom := geometry.NewTorus(1, .4, 12, 32, math32.Pi*2)
-	mat := material.NewStandard(math32.NewColor("DarkBlue"))
-	mesh := graphic.NewMesh(geom, mat)
-	g.scene.Add(mesh)
-
 	g.listenEvent()
 
-	g.scene.Add(graphic.NewMesh(geometry.NewCube(1), mat))
-
-	// Create and add a button to the scene
-	btn := gui.NewButton("Make Red")
-	btn.SetPosition(100, 40)
-	btn.SetSize(40, 40)
-	btn.Subscribe(gui.OnClick, func(name string, ev interface{}) {
-		mat.SetColor(math32.NewColor("DarkGreen"))
-	})
-	g.scene.Add(btn)
-
-	// Create and add a button to the scene
-	btn = gui.NewButton("Reset Player")
-	btn.SetPosition(100, 90)
-	btn.SetSize(40, 40)
-	btn.Subscribe(gui.OnClick, func(name string, ev interface{}) {
-		g.resetPlayer()
-	})
-	g.scene.Add(btn)
+	//// Create and add a button to the scene
+	//btn := gui.NewButton("Make Red")
+	//btn.SetPosition(100, 40)
+	//btn.SetSize(40, 40)
+	//btn.Subscribe(gui.OnClick, func(name string, ev interface{}) {
+	//})
+	//g.scene.Add(btn)
 
 	// Create and add lights to the scene
 	g.scene.Add(light.NewAmbient(&math32.Color{1.0, 1.0, 1.0}, 0.8))
@@ -221,16 +211,16 @@ func (g *Game) listenEvent() {
 				g.world.Player.MoveLeft(true)
 			}
 			if keyEvent.Key == window.KeyLeft {
-				g.world.Player.TurnLeft(true, 0.01)
+				g.world.Player.TurnLeft(true, 0.5)
 			}
 			if keyEvent.Key == window.KeyRight {
-				g.world.Player.TurnRight(true, 0.01)
+				g.world.Player.TurnRight(true, 0.5)
 			}
 			if keyEvent.Key == window.KeyUp {
-				g.world.Player.TurnUp(true, 0.01)
+				g.world.Player.TurnUp(true, 0.5)
 			}
 			if keyEvent.Key == window.KeyDown {
-				g.world.Player.TurnDown(true, 0.01)
+				g.world.Player.TurnDown(true, 0.5)
 			}
 		}
 	})
@@ -277,10 +267,10 @@ func (g *Game) listenEvent() {
 
 	g.app.Subscribe(window.OnCursor, func(evname string, ev interface{}) {
 		if cursorEvent, ok := ev.(*window.CursorEvent); ok {
-			g.world.Player.TurnLeft(false, 0)
-			g.world.Player.TurnRight(false, 0)
-			g.world.Player.TurnDown(false, 0)
-			g.world.Player.TurnUp(false, 0)
+			g.world.Player.TurnLeft(false, 1)
+			g.world.Player.TurnRight(false, 1)
+			g.world.Player.TurnDown(false, 1)
+			g.world.Player.TurnUp(false, 1)
 
 			x := -g.mousePosition.X + cursorEvent.Xpos
 			y := -g.mousePosition.Y + cursorEvent.Ypos
@@ -313,6 +303,7 @@ func (g *Game) resetPlayer() {
 }
 
 func (g *Game) update(deltaTime time.Duration) {
+	//g.axes.SetDirectionVec(g.world.Player.Direction)
 	g.world.Update(deltaTime)
 	g.cam.SetPositionVec(g.world.Player.Position)
 	//g.cam.SetDirectionVec(g.world.Player.Direction)

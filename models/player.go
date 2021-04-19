@@ -87,23 +87,49 @@ func (p *Player) MoveRight(value bool) {
 	p.moves[MoveRight] = value
 }
 
+const maxAngleSpeed = 0.5
+
 func (p *Player) TurnLeft(value bool, verticalAngleSpeed float32) {
+	if verticalAngleSpeed <= 0 {
+		return
+	}
 	p.moves[TurnLeft] = value
+	if verticalAngleSpeed > maxAngleSpeed {
+		verticalAngleSpeed = maxAngleSpeed
+	}
 	p.VerticalAngleAngleSpeed = verticalAngleSpeed
 }
 
 func (p *Player) TurnRight(value bool, verticalAngleSpeed float32) {
+	if verticalAngleSpeed <= 0 {
+		return
+	}
 	p.moves[TurnRight] = value
+	if verticalAngleSpeed > maxAngleSpeed {
+		verticalAngleSpeed = maxAngleSpeed
+	}
 	p.VerticalAngleAngleSpeed = verticalAngleSpeed
 }
 
 func (p *Player) TurnUp(value bool, horizontalAngleSpeed float32) {
+	if horizontalAngleSpeed <= 0 {
+		return
+	}
 	p.moves[TurnUp] = value
+	if horizontalAngleSpeed > maxAngleSpeed {
+		horizontalAngleSpeed = maxAngleSpeed
+	}
 	p.HorizontalAngleSpeed = horizontalAngleSpeed
 }
 
 func (p *Player) TurnDown(value bool, horizontalAngleSpeed float32) {
+	if horizontalAngleSpeed <= 0 {
+		return
+	}
 	p.moves[TurnDown] = value
+	if horizontalAngleSpeed > maxAngleSpeed {
+		horizontalAngleSpeed = maxAngleSpeed
+	}
 	p.HorizontalAngleSpeed = horizontalAngleSpeed
 }
 
@@ -139,7 +165,7 @@ func (p *Player) updateMoves() {
 }
 
 func (p *Player) Fire() {
-	bullet := NewBullet(p.world, p, p.Direction.Clone().MultiplyScalar(.5))
+	bullet := NewBullet(p.world, p, p.Direction.Clone().MultiplyScalar(.5).Add(p.Velocity))
 	p.world.AddBullet(bullet)
 }
 
@@ -147,9 +173,22 @@ func (p *Player) Update(deltaTime time.Duration) {
 	p.updateMoves()
 
 	p.Position.Add(p.Velocity)
-	p.Direction.ApplyAxisAngle(p.Up, p.VerticalAngle)
-	p.Direction.ApplyAxisAngle(p.GetLeftAxis(), p.HorizontalAngle)
-	p.Up.ApplyAxisAngle(p.GetLeftAxis(), p.HorizontalAngle)
+
+	//direction := p.Direction.Clone()
+	leftAxis := p.GetLeftAxis().Clone()
+	up := p.Up.Clone()
+
+	p.Up.ApplyAxisAngle(leftAxis, p.HorizontalAngle)
+	p.Direction.ApplyAxisAngle(up, p.VerticalAngle)
+	p.Direction.ApplyAxisAngle(leftAxis, p.HorizontalAngle)
+
+	if p.Up.Length() > 1 || p.Up.Length() < 0.9 {
+		p.Up.Normalize()
+	}
+	if p.Direction.Length() > 1 || p.Direction.Length() < 0.9 {
+		p.Direction.Normalize()
+	}
+
 	p.Velocity.MultiplyScalar(0.8)
 	p.VerticalAngle *= 0.8
 	p.HorizontalAngle *= 0.8
