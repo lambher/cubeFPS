@@ -6,6 +6,8 @@ import (
 	"runtime"
 	"time"
 
+	gui2 "github.com/lambher/video-game/gui"
+
 	"github.com/lambher/video-game/entities"
 
 	"github.com/go-gl/glfw/v3.3/glfw"
@@ -29,6 +31,7 @@ type Game struct {
 	app   *app.Application
 	scene *core.Node
 	cam   *camera.Camera
+	gui   *gui2.GUI
 
 	mousePosition *math32.Vector2
 
@@ -164,7 +167,7 @@ func (g *Game) Init() {
 	onResize("", nil)
 
 	g.listenEvent()
-
+	g.initGUI()
 	//// Create and add a button to the scene
 	//btn := gui.NewButton("Make Red")
 	//btn.SetPosition(100, 40)
@@ -193,6 +196,12 @@ func (g *Game) Run() {
 		g.app.Gls().Clear(gls.DEPTH_BUFFER_BIT | gls.STENCIL_BUFFER_BIT | gls.COLOR_BUFFER_BIT)
 		renderer.Render(g.scene, g.cam)
 	})
+}
+
+func (g *Game) initGUI() {
+	width, height := g.app.GetSize()
+	g.gui = gui2.NewGUI(g.world, width, height)
+	g.scene.Add(g.gui)
 }
 
 func (g *Game) listenEvent() {
@@ -304,6 +313,7 @@ func (g *Game) resetPlayer() {
 
 func (g *Game) update(deltaTime time.Duration) {
 	//g.axes.SetDirectionVec(g.world.Player.Direction)
+	g.gui.Update()
 	g.world.Update(deltaTime)
 	g.cam.SetPositionVec(g.world.Player.Position)
 	//g.cam.SetDirectionVec(g.world.Player.Direction)

@@ -71,6 +71,10 @@ func NewPlayer(world *World, name string, position math32.Vector3) *Player {
 	return player
 }
 
+func (p Player) GetHP() int {
+	return p.hp
+}
+
 func (p *Player) MoveForward(value bool) {
 	p.moves[MoveForward] = value
 }
