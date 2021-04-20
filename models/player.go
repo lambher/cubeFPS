@@ -222,3 +222,9 @@ func (p *Player) BulletHit(bullet *Bullet) {
 		p.world.eventListener.OnPlayerHit(p)
 	}
 }
+
+func (p *Player) Refresh(player Player) {
+	p.Name = player.Name
+	p.Position = player.Position
+	p.Direction = player.Direction
+}

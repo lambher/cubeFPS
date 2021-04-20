@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net"
+	"strings"
 	"time"
 
 	"github.com/g3n/engine/math32"
@@ -14,22 +15,79 @@ import (
 
 var world models.World
 
-func sendResponse(conn *net.UDPConn, addr *net.UDPAddr, player *models.Player) {
-	addYou(conn, addr, player)
-	sendList(conn, addr)
+type Client struct {
+	Addr   *net.UDPAddr
+	Conn   *net.UDPConn
+	Player *models.Player
+}
 
-	world.AddPlayer(player)
+var clients map[string]*Client
+
+func (c *Client) sendResponse() {
+	c.addYou()
+	c.sendList()
+	c.populatePlayer()
+
+	world.AddPlayer(c.Player)
 
 	for range time.Tick(time.Second) {
-		_, err := conn.WriteToUDP([]byte("tick\n"), addr)
+		_, err := c.Conn.WriteToUDP([]byte("tick\n"), c.Addr)
 		if err != nil {
 			fmt.Printf("Couldn't send response %v", err)
 		}
 	}
 }
 
-func addYou(conn *net.UDPConn, addr *net.UDPAddr, player *models.Player) {
-	playerData, err := json.Marshal(player)
+func (c *Client) listen() {
+	for {
+		p := make([]byte, 2048)
+
+		n, _, err := c.Conn.ReadFromUDP(p)
+		if err != nil {
+			fmt.Printf("Some error  %v", err)
+			return
+		}
+		c.parse(string(p[:n]))
+	}
+}
+
+func (c *Client) parse(message string) {
+	messages := strings.Split(message, "\n")
+	if len(messages) <= 1 {
+		return
+	}
+	switch messages[0] {
+	case "refresh":
+		c.handleRefresh([]byte(messages[1]))
+	}
+}
+
+func (c *Client) handleRefresh(data []byte) {
+	var player models.Player
+
+	err := json.Unmarshal(data, &player)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+	if player.Position == nil {
+		fmt.Println("player position is null")
+		return
+	}
+
+	c.Player.Refresh(player)
+}
+
+func (c *Client) populatePlayer() {
+	for _, client := range clients {
+		if client.Player.ID != c.Player.ID {
+			client.addPlayer(c.Player)
+		}
+	}
+}
+
+func (c *Client) addYou() {
+	playerData, err := json.Marshal(c.Player)
 
 	data := make([]byte, 0)
 
@@ -37,30 +95,35 @@ func addYou(conn *net.UDPConn, addr *net.UDPAddr, player *models.Player) {
 	data = append(data, playerData...)
 
 	fmt.Println(string(data))
-	_, err = conn.WriteToUDP(data, addr)
+	_, err = c.Conn.WriteToUDP(data, c.Addr)
 	if err != nil {
 		fmt.Println(err)
 	}
 }
 
-func sendList(conn *net.UDPConn, addr *net.UDPAddr) {
+func (c *Client) addPlayer(player *models.Player) {
+	playerData, err := json.Marshal(player)
+
+	data := make([]byte, 0)
+
+	data = append(data, []byte("add_player\n")...)
+	data = append(data, playerData...)
+
+	fmt.Println(string(data))
+	_, err = c.Conn.WriteToUDP(data, c.Addr)
+	if err != nil {
+		fmt.Println(err)
+	}
+}
+
+func (c *Client) sendList() {
 	for _, player := range world.Players {
-		playerData, err := json.Marshal(player)
-
-		data := make([]byte, 0)
-
-		data = append(data, []byte("add_player\n")...)
-		data = append(data, playerData...)
-
-		fmt.Println(string(data))
-		_, err = conn.WriteToUDP(data, addr)
-		if err != nil {
-			fmt.Println(err)
-		}
+		c.addPlayer(player)
 	}
 }
 
 func main() {
+	clients = make(map[string]*Client)
 	p := make([]byte, 2048)
 	addr := net.UDPAddr{
 		Port: 1234,
@@ -83,7 +146,13 @@ func main() {
 		fmt.Printf("Read a message from %v %s \n", remoteaddr, p)
 		if value == "hello" {
 			player := models.NewPlayer(xid.New().String(), &world, "", *math32.NewVec3())
-			go sendResponse(ser, remoteaddr, player)
+			clients[player.GetID()] = &Client{
+				Addr:   remoteaddr,
+				Conn:   ser,
+				Player: player,
+			}
+			go clients[player.GetID()].sendResponse()
+			go clients[player.GetID()].listen()
 		}
 	}
 }
