@@ -6,7 +6,7 @@ import (
 
 type World struct {
 	Player        *Player
-	players       map[string]*Player
+	Players       map[string]*Player
 	models        map[string]Model
 	eventListener EventListener
 }
@@ -23,13 +23,13 @@ func (w *World) SubscribeEventListener(e EventListener) {
 }
 
 func (w *World) AddPlayer(player *Player) {
-	if w.players == nil {
-		w.players = make(map[string]*Player)
+	if w.Players == nil {
+		w.Players = make(map[string]*Player)
 	}
 	if w.Player == nil {
 		w.Player = player
 	}
-	w.players[player.GetID()] = player
+	w.Players[player.GetID()] = player
 	if w.eventListener != nil {
 		w.eventListener.OnAddPlayer(player)
 	}
@@ -53,7 +53,7 @@ func (w *World) removeModel(model Model) {
 
 func (w *World) Update(deltaTime time.Duration) {
 	players := make(map[string]*Player)
-	for _, player := range w.players {
+	for _, player := range w.Players {
 		player.Update(deltaTime)
 		if !player.IsDeleted() {
 			players[player.GetID()] = player
@@ -61,7 +61,7 @@ func (w *World) Update(deltaTime time.Duration) {
 			w.removeModel(player)
 		}
 	}
-	w.players = players
+	w.Players = players
 
 	models := make(map[string]Model)
 

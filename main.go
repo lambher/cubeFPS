@@ -3,9 +3,8 @@ package main
 import (
 	"time"
 
-	"github.com/g3n/engine/gls"
-
 	"github.com/g3n/engine/app"
+	"github.com/g3n/engine/gls"
 	"github.com/g3n/engine/renderer"
 	"github.com/g3n/engine/window"
 	"github.com/lambher/video-game/game"

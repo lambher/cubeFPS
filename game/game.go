@@ -1,9 +1,13 @@
 package game
 
 import (
+	"bufio"
+	"encoding/json"
 	"fmt"
+	"net"
 	"os"
 	"runtime"
+	"strings"
 	"time"
 
 	"github.com/go-gl/glfw/v3.3/glfw"
@@ -52,6 +56,10 @@ func (g *Game) OnAddPlayer(player *models.Player) {
 }
 
 func (g *Game) OnPlayerHit(player *models.Player) {
+	if g.entities == nil {
+		g.entities = make(map[string]entities.Entity)
+	}
+
 	if p, ok := g.entities[player.GetID()].(*entities.Player); ok {
 		p.Hit()
 	}
@@ -72,6 +80,10 @@ func bToMb(b uint64) uint64 {
 }
 
 func (g *Game) OnAddBullet(bullet *models.Bullet) {
+	if g.entities == nil {
+		g.entities = make(map[string]entities.Entity)
+	}
+
 	entity := entities.NewBullet(bullet)
 	g.entities[bullet.GetID()] = entity
 
@@ -98,38 +110,114 @@ func NewGame(app *app.Application) *Game {
 	}
 }
 
+func (g *Game) connect() {
+	p := make([]byte, 2048)
+	conn, err := net.Dial("udp", "127.0.0.1:1234")
+	if err != nil {
+		fmt.Printf("Some error %v", err)
+		return
+	}
+	fmt.Fprintf(conn, "hello")
+	n, err := bufio.NewReader(conn).Read(p)
+	if err == nil {
+		g.parse(string(p[:n]))
+	} else {
+		fmt.Printf("Some error %v\n", err)
+	}
+	defer conn.Close()
+
+	for {
+		n, err := bufio.NewReader(conn).Read(p)
+		if err == nil {
+			g.parse(string(p[:n]))
+		} else {
+			fmt.Printf("Some error %v\n", err)
+		}
+	}
+
+}
+
+func (g *Game) parse(message string) {
+	messages := strings.Split(message, "\n")
+	if len(messages) <= 1 {
+		return
+	}
+	switch messages[0] {
+	case "you":
+		g.handleYou([]byte(messages[1]))
+	case "add_player":
+		g.handleAddPlayer([]byte(messages[1]))
+	}
+}
+
+func (g *Game) handleAddPlayer(data []byte) {
+	var player models.Player
+
+	err := json.Unmarshal(data, &player)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+	if player.Position == nil {
+		fmt.Println("player position is null")
+		return
+	}
+	newPlayer := models.NewPlayer(player.GetID(), g.world, player.Name, *player.Position)
+
+	g.AddPlayer(newPlayer)
+}
+
+func (g *Game) handleYou(data []byte) {
+	var player models.Player
+
+	err := json.Unmarshal(data, &player)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+	if player.Position == nil {
+		fmt.Println("player position is null")
+		return
+	}
+	newPlayer := models.NewPlayer(player.GetID(), g.world, player.Name, *player.Position)
+
+	g.AddPlayer(newPlayer)
+}
+
 func (g *Game) Init() {
 	g.world = &models.World{}
 	g.world.SubscribeEventListener(g)
 
+	go g.connect()
+
 	g.Scene = core.NewNode()
 	gui.Manager().Set(g.Scene)
 
-	newPlayer := models.NewPlayer(g.world, "Lambert", math32.Vector3{
-		X: 0,
-		Y: 0,
-		Z: 3,
-	})
-
-	//g.mouseVelocity = math32.NewVec2()
-
-	g.AddPlayer(newPlayer)
-
-	g.AddPlayer(models.NewPlayer(g.world, "Milande", math32.Vector3{
-		X: 0,
-		Y: 0,
-		Z: -3,
-	}))
-	g.AddPlayer(models.NewPlayer(g.world, "Etienne", math32.Vector3{
-		X: 0,
-		Y: 3,
-		Z: -3,
-	}))
-	g.AddPlayer(models.NewPlayer(g.world, "Patrick", math32.Vector3{
-		X: -3,
-		Y: 3,
-		Z: -3,
-	}))
+	//newPlayer := models.NewPlayer(g.world, "Lambert", math32.Vector3{
+	//	X: 0,
+	//	Y: 0,
+	//	Z: 3,
+	//})
+	//
+	////g.mouseVelocity = math32.NewVec2()
+	//
+	//g.AddPlayer(newPlayer)
+	//
+	//g.AddPlayer(models.NewPlayer(g.world, "Milande", math32.Vector3{
+	//	X: 0,
+	//	Y: 0,
+	//	Z: -3,
+	//}))
+	//g.AddPlayer(models.NewPlayer(g.world, "Etienne", math32.Vector3{
+	//	X: 0,
+	//	Y: 3,
+	//	Z: -3,
+	//}))
+	//g.AddPlayer(models.NewPlayer(g.world, "Patrick", math32.Vector3{
+	//	X: -3,
+	//	Y: 3,
+	//	Z: -3,
+	//}))
 
 	width, height := g.app.GetSize()
 
@@ -156,8 +244,8 @@ func (g *Game) Init() {
 	g.Scene.Add(g.menu)
 
 	g.Cam = camera.New(1)
-	g.Cam.SetPositionVec(newPlayer.Position)
-	g.Cam.SetDirectionVec(newPlayer.Direction)
+	//g.Cam.SetPositionVec(newPlayer.Position)
+	//g.Cam.SetDirectionVec(newPlayer.Direction)
 	g.Scene.Add(g.Cam)
 
 	skybox, err := graphic.NewSkybox(graphic.SkyboxData{
@@ -228,6 +316,7 @@ func (g *Game) start() {
 	g.app.IWindow.(*window.GlfwWindow).SetInputMode(glfw.CursorMode, glfw.CursorHidden)
 	g.started = true
 	g.listenEvent()
+	fmt.Println("start")
 }
 
 func (g *Game) pause() {
@@ -354,14 +443,6 @@ func (g *Game) listenEvent() {
 				g.world.Player.TurnDown(true, y)
 			}
 		}
-	})
-}
-
-func (g *Game) resetPlayer() {
-	g.world.Player = models.NewPlayer(g.world, "Lambert", math32.Vector3{
-		X: 0,
-		Y: 0,
-		Z: 3,
 	})
 }
 

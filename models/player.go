@@ -19,6 +19,7 @@ const (
 )
 
 type Player struct {
+	ID                      string
 	Position                *math32.Vector3
 	Direction               *math32.Vector3
 	Velocity                *math32.Vector3
@@ -43,8 +44,9 @@ func newMoves() Moves {
 	}
 }
 
-func NewPlayer(world *World, name string, position math32.Vector3) *Player {
+func NewPlayer(id string, world *World, name string, position math32.Vector3) *Player {
 	player := &Player{
+		ID:       id,
 		Position: &position,
 		Direction: &math32.Vector3{
 			X: 0,
@@ -203,7 +205,7 @@ func (p Player) IsDeleted() bool {
 }
 
 func (b Player) GetID() string {
-	return b.Name
+	return b.ID
 }
 
 func (p Player) GetHitBox() *math32.Sphere {
