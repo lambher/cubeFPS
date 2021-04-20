@@ -6,33 +6,32 @@ import (
 	"runtime"
 	"time"
 
+	"github.com/go-gl/glfw/v3.3/glfw"
 	gui2 "github.com/lambher/video-game/gui"
 
 	"github.com/lambher/video-game/entities"
 
-	"github.com/go-gl/glfw/v3.3/glfw"
 	"github.com/lambher/video-game/models"
 
 	"github.com/g3n/engine/app"
 	"github.com/g3n/engine/camera"
 	"github.com/g3n/engine/core"
-	"github.com/g3n/engine/gls"
 	"github.com/g3n/engine/graphic"
 	"github.com/g3n/engine/gui"
 	"github.com/g3n/engine/light"
 	"github.com/g3n/engine/math32"
-	"github.com/g3n/engine/renderer"
 	"github.com/g3n/engine/util/helper"
 	"github.com/g3n/engine/window"
 )
 
 type Game struct {
-	world *models.World
-	app   *app.Application
-	scene *core.Node
-	cam   *camera.Camera
-	gui   *gui2.GUI
-
+	world         *models.World
+	app           *app.Application
+	Scene         *core.Node
+	Cam           *camera.Camera
+	gui           *gui2.GUI
+	started       bool
+	menu          *core.Node
 	mousePosition *math32.Vector2
 
 	entities map[string]entities.Entity
@@ -49,7 +48,7 @@ func (g *Game) OnAddPlayer(player *models.Player) {
 	entity := entities.NewPlayer(player)
 	g.entities[player.GetID()] = entity
 
-	g.scene.Add(entity.Mesh)
+	g.Scene.Add(entity.Mesh)
 }
 
 func (g *Game) OnPlayerHit(player *models.Player) {
@@ -76,7 +75,7 @@ func (g *Game) OnAddBullet(bullet *models.Bullet) {
 	entity := entities.NewBullet(bullet)
 	g.entities[bullet.GetID()] = entity
 
-	g.scene.Add(entity.Mesh)
+	g.Scene.Add(entity.Mesh)
 }
 
 func (g *Game) OnRemoveModel(model models.Model) {
@@ -84,7 +83,7 @@ func (g *Game) OnRemoveModel(model models.Model) {
 		//if player, ok := entity.(*entities.Player); ok {
 		//
 		//}
-		g.scene.Remove(entity.GetMesh())
+		g.Scene.Remove(entity.GetMesh())
 		delete(g.entities, model.GetID())
 	}
 }
@@ -93,14 +92,18 @@ func (g *Game) AddPlayer(player *models.Player) {
 	g.world.AddPlayer(player)
 }
 
+func NewGame(app *app.Application) *Game {
+	return &Game{
+		app: app,
+	}
+}
+
 func (g *Game) Init() {
 	g.world = &models.World{}
 	g.world.SubscribeEventListener(g)
 
-	g.app = app.App()
-	g.scene = core.NewNode()
-	gui.Manager().Set(g.scene)
-	window.Get().(*window.GlfwWindow).SetFullscreen(true)
+	g.Scene = core.NewNode()
+	gui.Manager().Set(g.Scene)
 
 	newPlayer := models.NewPlayer(g.world, "Lambert", math32.Vector3{
 		X: 0,
@@ -128,10 +131,34 @@ func (g *Game) Init() {
 		Z: -3,
 	}))
 
-	g.cam = camera.New(1)
-	g.cam.SetPositionVec(newPlayer.Position)
-	g.cam.SetDirectionVec(newPlayer.Direction)
-	g.scene.Add(g.cam)
+	width, height := g.app.GetSize()
+
+	g.menu = core.NewNode()
+	editName := gui.NewEdit(200, "Enter your name")
+	startButton := gui.NewButton("Start")
+	exitButton := gui.NewButton("Exit")
+	startButton.Subscribe(gui.OnClick, func(s string, i interface{}) {
+		if editName.Text() == "" {
+			return
+		}
+		g.world.Player.Name = editName.Text()
+		g.start()
+	})
+	exitButton.Subscribe(gui.OnClick, func(s string, i interface{}) {
+		g.app.Exit()
+	})
+	editName.SetPosition(float32(width)/2, float32(height)/2)
+	startButton.SetPosition(float32(width)/2, float32(height)/2+editName.ContentHeight())
+	exitButton.SetPosition(float32(width)/2, float32(height)/2+editName.ContentHeight()+startButton.ContentHeight())
+	g.menu.Add(editName)
+	g.menu.Add(startButton)
+	g.menu.Add(exitButton)
+	g.Scene.Add(g.menu)
+
+	g.Cam = camera.New(1)
+	g.Cam.SetPositionVec(newPlayer.Position)
+	g.Cam.SetDirectionVec(newPlayer.Direction)
+	g.Scene.Add(g.Cam)
 
 	skybox, err := graphic.NewSkybox(graphic.SkyboxData{
 		DirAndPrefix: "./assets/textures/skyboxes/lambert/",
@@ -150,23 +177,21 @@ func (g *Game) Init() {
 		os.Exit(1)
 	}
 
-	g.scene.Add(skybox)
+	g.Scene.Add(skybox)
 
 	//fmt.Println(glfw.CursorMode)
 
-	g.app.IWindow.(*window.GlfwWindow).SetInputMode(glfw.CursorMode, glfw.CursorHidden)
 	// Set up callback to update viewport and camera aspect ratio when the window is resized
 	onResize := func(evname string, ev interface{}) {
 		// Get framebuffer size and update viewport accordingly
-		width, height := g.app.GetSize()
+
 		g.app.Gls().Viewport(0, 0, int32(width), int32(height))
 		// Update the camera's aspect ratio
-		g.cam.SetAspect(float32(width) / float32(height))
+		g.Cam.SetAspect(float32(width) / float32(height))
 	}
 	g.app.Subscribe(window.OnWindowSize, onResize)
 	onResize("", nil)
 
-	g.listenEvent()
 	g.initGUI()
 	//// Create and add a button to the scene
 	//btn := gui.NewButton("Make Red")
@@ -177,35 +202,51 @@ func (g *Game) Init() {
 	//g.scene.Add(btn)
 
 	// Create and add lights to the scene
-	g.scene.Add(light.NewAmbient(&math32.Color{1.0, 1.0, 1.0}, 0.8))
+	g.Scene.Add(light.NewAmbient(&math32.Color{1.0, 1.0, 1.0}, 0.8))
 	pointLight := light.NewPoint(&math32.Color{1, 1, 1}, 5.0)
 	pointLight.SetPosition(1, 0, 2)
-	g.scene.Add(pointLight)
+	g.Scene.Add(pointLight)
 
 	// Create and add an axis helper to the scene
-	g.scene.Add(helper.NewAxes(0.5))
+	g.Scene.Add(helper.NewAxes(0.5))
 
 	// Set background color to gray
 	g.app.Gls().ClearColor(0.5, 0.5, 0.5, 1.0)
 }
 
-func (g *Game) Run() {
-	// Run the application
-	g.app.Run(func(renderer *renderer.Renderer, deltaTime time.Duration) {
-		g.update(deltaTime)
-		g.app.Gls().Clear(gls.DEPTH_BUFFER_BIT | gls.STENCIL_BUFFER_BIT | gls.COLOR_BUFFER_BIT)
-		renderer.Render(g.scene, g.cam)
-	})
+//func (g *Game) Run() {
+//	// Run the application
+//	g.app.Run(func(renderer *renderer.Renderer, deltaTime time.Duration) {
+//		g.update(deltaTime)
+//		g.app.Gls().Clear(gls.DEPTH_BUFFER_BIT | gls.STENCIL_BUFFER_BIT | gls.COLOR_BUFFER_BIT)
+//		renderer.Render(g.scene, g.cam)
+//	})
+//}
+
+func (g *Game) start() {
+	g.Scene.Remove(g.menu)
+	g.app.IWindow.(*window.GlfwWindow).SetInputMode(glfw.CursorMode, glfw.CursorHidden)
+	g.started = true
+	g.listenEvent()
+}
+
+func (g *Game) pause() {
+	g.Scene.Add(g.menu)
+	g.app.IWindow.(*window.GlfwWindow).SetInputMode(glfw.CursorMode, glfw.CursorNormal)
+	g.started = false
 }
 
 func (g *Game) initGUI() {
 	width, height := g.app.GetSize()
 	g.gui = gui2.NewGUI(g.world, width, height)
-	g.scene.Add(g.gui)
+	g.Scene.Add(g.gui)
 }
 
 func (g *Game) listenEvent() {
 	g.app.Subscribe(window.OnKeyDown, func(evname string, ev interface{}) {
+		if !g.started {
+			return
+		}
 		if keyEvent, ok := ev.(*window.KeyEvent); ok {
 			if keyEvent.Key == window.KeyW {
 				g.world.Player.MoveForward(true)
@@ -231,10 +272,17 @@ func (g *Game) listenEvent() {
 			if keyEvent.Key == window.KeyDown {
 				g.world.Player.TurnDown(true, 0.5)
 			}
+
+			if keyEvent.Key == window.KeyEscape {
+				g.pause()
+			}
 		}
 	})
 
 	g.app.Subscribe(window.OnKeyUp, func(evname string, ev interface{}) {
+		if !g.started {
+			return
+		}
 		if keyEvent, ok := ev.(*window.KeyEvent); ok {
 			if keyEvent.Key == window.KeyW {
 				g.world.Player.MoveForward(false)
@@ -264,6 +312,9 @@ func (g *Game) listenEvent() {
 	})
 
 	g.app.Subscribe(window.OnMouseDown, func(evname string, ev interface{}) {
+		if !g.started {
+			return
+		}
 		if mouseEvent, ok := ev.(*window.MouseEvent); ok {
 			if mouseEvent.Button == window.MouseButton1 {
 				g.world.Player.Fire()
@@ -275,6 +326,9 @@ func (g *Game) listenEvent() {
 	g.mousePosition = math32.NewVector2(float32(x/2), float32(y/2))
 
 	g.app.Subscribe(window.OnCursor, func(evname string, ev interface{}) {
+		if !g.started {
+			return
+		}
 		if cursorEvent, ok := ev.(*window.CursorEvent); ok {
 			g.world.Player.TurnLeft(false, 1)
 			g.world.Player.TurnRight(false, 1)
@@ -311,13 +365,17 @@ func (g *Game) resetPlayer() {
 	})
 }
 
-func (g *Game) update(deltaTime time.Duration) {
+func (g *Game) Update(deltaTime time.Duration) {
+	if !g.started {
+		return
+	}
+
 	//g.axes.SetDirectionVec(g.world.Player.Direction)
 	g.gui.Update()
 	g.world.Update(deltaTime)
-	g.cam.SetPositionVec(g.world.Player.Position)
+	g.Cam.SetPositionVec(g.world.Player.Position)
 	//g.cam.SetDirectionVec(g.world.Player.Direction)
-	g.cam.LookAt(g.world.Player.Direction.Clone().Add(g.world.Player.Position), g.world.Player.Up)
+	g.Cam.LookAt(g.world.Player.Direction.Clone().Add(g.world.Player.Position), g.world.Player.Up)
 	x, y := g.app.GetSize()
 	g.mousePosition = math32.NewVector2(float32(x/2), float32(y/2))
 	g.app.IWindow.(*window.GlfwWindow).SetCursorPos(float64(g.mousePosition.X), float64(g.mousePosition.Y))

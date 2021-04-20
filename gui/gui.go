@@ -13,8 +13,9 @@ import (
 )
 
 type GUI struct {
-	hpLabel *gui.Label
-	world   *models.World
+	hpLabel   *gui.Label
+	nameLabel *gui.Label
+	world     *models.World
 
 	*core.Node
 }
@@ -35,13 +36,20 @@ func NewGUI(world *models.World, width, height int) *GUI {
 	GUI.hpLabel = gui.NewLabel("HP")
 	GUI.hpLabel.SetFontSize(50)
 	GUI.hpLabel.SetFont(font)
-	GUI.hpLabel.SetPosition(float32(width/2), float32(height)-100)
+	GUI.hpLabel.SetPosition(float32(width/2)-GUI.hpLabel.ContentWidth(), float32(height)-100)
+
+	GUI.nameLabel = gui.NewLabel("Name")
+	GUI.nameLabel.SetFontSize(25)
+	GUI.nameLabel.SetFont(font)
+	GUI.nameLabel.SetPosition(10, 10)
 
 	GUI.Node.Add(GUI.hpLabel)
+	GUI.Node.Add(GUI.nameLabel)
 
 	return &GUI
 }
 
 func (g *GUI) Update() {
 	g.hpLabel.SetText(fmt.Sprintf("HP:%d", g.world.Player.GetHP()))
+	g.nameLabel.SetText(fmt.Sprintf("%s", g.world.Player.Name))
 }
