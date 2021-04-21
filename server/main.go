@@ -119,7 +119,7 @@ func (c *Client) sendList() {
 func main() {
 	clients = make(map[string]*Client)
 	addr := net.UDPAddr{
-		Port: 1234,
+		Port: 27017,
 		IP:   net.ParseIP("127.0.0.1"),
 	}
 	ser, err := net.ListenUDP("udp", &addr)
