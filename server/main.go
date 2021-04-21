@@ -29,13 +29,7 @@ func (c *Client) sendResponse() {
 	c.populatePlayer()
 
 	world.AddPlayer(c.Player)
-
-	for range time.Tick(time.Second) {
-		_, err := c.Conn.WriteToUDP([]byte("tick\n"), c.Addr)
-		if err != nil {
-			fmt.Printf("Couldn't send response %v", err)
-		}
-	}
+	c.listen()
 }
 
 func (c *Client) listen() {
@@ -57,12 +51,12 @@ func (c *Client) parse(message string) {
 		return
 	}
 	switch messages[0] {
-	case "refresh":
-		c.handleRefresh([]byte(messages[1]))
+	case "refresh_player":
+		c.handleRefreshPlayer([]byte(messages[1]))
 	}
 }
 
-func (c *Client) handleRefresh(data []byte) {
+func (c *Client) handleRefreshPlayer(data []byte) {
 	var player models.Player
 
 	err := json.Unmarshal(data, &player)
@@ -86,6 +80,20 @@ func (c *Client) populatePlayer() {
 	}
 }
 
+func (c *Client) refreshPlayer(player *models.Player) {
+	playerData, err := json.Marshal(player)
+
+	data := make([]byte, 0)
+
+	data = append(data, []byte("refresh_player\n")...)
+	data = append(data, playerData...)
+
+	_, err = c.Conn.WriteToUDP(data, c.Addr)
+	if err != nil {
+		fmt.Println(err)
+	}
+}
+
 func (c *Client) addYou() {
 	playerData, err := json.Marshal(c.Player)
 
@@ -94,7 +102,6 @@ func (c *Client) addYou() {
 	data = append(data, []byte("you\n")...)
 	data = append(data, playerData...)
 
-	fmt.Println(string(data))
 	_, err = c.Conn.WriteToUDP(data, c.Addr)
 	if err != nil {
 		fmt.Println(err)
@@ -109,7 +116,6 @@ func (c *Client) addPlayer(player *models.Player) {
 	data = append(data, []byte("add_player\n")...)
 	data = append(data, playerData...)
 
-	fmt.Println(string(data))
 	_, err = c.Conn.WriteToUDP(data, c.Addr)
 	if err != nil {
 		fmt.Println(err)
@@ -124,7 +130,6 @@ func (c *Client) sendList() {
 
 func main() {
 	clients = make(map[string]*Client)
-	p := make([]byte, 2048)
 	addr := net.UDPAddr{
 		Port: 1234,
 		IP:   net.ParseIP("127.0.0.1"),
@@ -136,23 +141,46 @@ func main() {
 	}
 
 	fmt.Printf("listen on port %d\n", addr.Port)
+
+	go tick()
+
 	for {
+		p := make([]byte, 2048)
+
 		n, remoteaddr, err := ser.ReadFromUDP(p)
 		if err != nil {
 			fmt.Printf("Some error  %v", err)
 			continue
 		}
 		value := string(p[:n])
-		fmt.Printf("Read a message from %v %s \n", remoteaddr, p)
+		fmt.Printf("Read a message from %s %s \n", remoteaddr.String(), p)
 		if value == "hello" {
 			player := models.NewPlayer(xid.New().String(), &world, "", *math32.NewVec3())
-			clients[player.GetID()] = &Client{
+			clients[remoteaddr.String()] = &Client{
 				Addr:   remoteaddr,
 				Conn:   ser,
 				Player: player,
 			}
-			go clients[player.GetID()].sendResponse()
-			go clients[player.GetID()].listen()
+			go clients[remoteaddr.String()].sendResponse()
+			//go clients[remoteaddr.String()].listen()
+		} else {
+			if client, ok := clients[remoteaddr.String()]; ok {
+				client.parse(value)
+			}
+		}
+	}
+}
+
+func tick() {
+	for range time.Tick(time.Millisecond * 300) {
+		refreshPlayers()
+	}
+}
+
+func refreshPlayers() {
+	for _, client := range clients {
+		for _, player := range world.Players {
+			client.refreshPlayer(player)
 		}
 	}
 }

@@ -125,8 +125,30 @@ func (g *Game) connect() {
 		fmt.Printf("Some error %v\n", err)
 	}
 	defer conn.Close()
+	go g.listen(conn)
 
+	for range time.Tick(time.Millisecond * 300) {
+		g.refreshPlayer(conn)
+	}
+}
+
+func (g *Game) refreshPlayer(conn net.Conn) {
+	playerData, err := json.Marshal(g.world.Player)
+
+	data := make([]byte, 0)
+
+	data = append(data, []byte("refresh_player\n")...)
+	data = append(data, playerData...)
+
+	_, err = fmt.Fprintf(conn, string(data))
+	if err != nil {
+		fmt.Println(err)
+	}
+}
+
+func (g *Game) listen(conn net.Conn) {
 	for {
+		p := make([]byte, 2048)
 		n, err := bufio.NewReader(conn).Read(p)
 		if err == nil {
 			g.parse(string(p[:n]))
@@ -134,7 +156,6 @@ func (g *Game) connect() {
 			fmt.Printf("Some error %v\n", err)
 		}
 	}
-
 }
 
 func (g *Game) parse(message string) {
@@ -147,6 +168,25 @@ func (g *Game) parse(message string) {
 		g.handleYou([]byte(messages[1]))
 	case "add_player":
 		g.handleAddPlayer([]byte(messages[1]))
+	case "refresh_player":
+		g.handleRefreshPlayer([]byte(messages[1]))
+	}
+}
+
+func (g *Game) handleRefreshPlayer(data []byte) {
+	var player models.Player
+
+	err := json.Unmarshal(data, &player)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+	if player.Position == nil {
+		fmt.Println("player position is null")
+		return
+	}
+	if p, ok := g.world.Players[player.GetID()]; ok {
+		p.Refresh(player)
 	}
 }
 
