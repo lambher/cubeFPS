@@ -196,6 +196,8 @@ func (g *Game) parse(message string) {
 		g.handleYou([]byte(messages[1]))
 	case "add_player":
 		g.handleAddPlayer([]byte(messages[1]))
+	case "exit":
+		g.handleExit([]byte(messages[1]))
 	case "refresh_player":
 		g.handleRefreshPlayer([]byte(messages[1]))
 	case "fire":
@@ -253,6 +255,22 @@ func (g *Game) handleAddPlayer(data []byte) {
 	newPlayer := models.NewPlayer(player.GetID(), g.world, player.Name, *player.Position)
 
 	g.AddPlayer(newPlayer)
+}
+
+func (g *Game) handleExit(data []byte) {
+	var player models.Player
+
+	err := json.Unmarshal(data, &player)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+	if player.Position == nil {
+		fmt.Println("player position is null")
+		return
+	}
+
+	g.world.RemovePlayer(&player)
 }
 
 func (g *Game) handleYou(data []byte) {
@@ -550,6 +568,13 @@ func (g *Game) listenEvent() {
 
 		}
 	})
+}
+
+func (g *Game) SendExit() {
+	_, err := fmt.Fprintf(g.conn, "exit")
+	if err != nil {
+		fmt.Println(err)
+	}
 }
 
 func (g *Game) Update(deltaTime time.Duration) {

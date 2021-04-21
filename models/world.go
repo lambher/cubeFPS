@@ -80,6 +80,13 @@ func (w *World) AddPlayer(player *Player) {
 	}
 }
 
+func (w *World) RemovePlayer(player *Player) {
+	delete(w.players, player.GetID())
+	if w.eventListener != nil {
+		w.eventListener.OnRemoveModel(player)
+	}
+}
+
 func (w *World) AddBullet(bullet *Bullet) {
 	if w.models == nil {
 		w.models = make(map[string]Model)

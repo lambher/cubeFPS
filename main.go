@@ -16,6 +16,9 @@ func main() {
 	g := game.NewGame(a)
 
 	g.Init()
+
+	defer g.SendExit()
+
 	a.Run(func(renderer *renderer.Renderer, deltaTime time.Duration) {
 		g.Update(deltaTime)
 		a.Gls().Clear(gls.DEPTH_BUFFER_BIT | gls.STENCIL_BUFFER_BIT | gls.COLOR_BUFFER_BIT)

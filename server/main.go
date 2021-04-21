@@ -157,6 +157,29 @@ func (c *Client) sendFire(player *models.Player) {
 	}
 }
 
+func (c *Client) sendExit(player *models.Player) {
+	playerData, err := json.Marshal(player)
+
+	data := make([]byte, 0)
+
+	data = append(data, []byte("exit\n")...)
+	data = append(data, playerData...)
+
+	_, err = c.Conn.WriteToUDP(data, c.Addr)
+	if err != nil {
+		fmt.Println(err)
+	}
+}
+
+func (c *Client) exit() {
+	world.RemovePlayer(c.Player)
+	for _, client := range clients {
+		if client != c {
+			client.sendExit(c.Player)
+		}
+	}
+}
+
 func main() {
 	clients = make(map[string]*Client)
 	addr := net.UDPAddr{
@@ -193,6 +216,11 @@ func main() {
 			}
 			go clients[remoteaddr.String()].sendResponse()
 			//go clients[remoteaddr.String()].listen()
+		} else if value == "exit" {
+			if client, ok := clients[remoteaddr.String()]; ok {
+				client.exit()
+				delete(clients, remoteaddr.String())
+			}
 		} else {
 			if client, ok := clients[remoteaddr.String()]; ok {
 				client.parse(value)
