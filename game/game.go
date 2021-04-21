@@ -515,6 +515,8 @@ func (g *Game) listenEvent() {
 			if y > 0 {
 				g.world.Player.TurnDown(true, y)
 			}
+			g.sendMove()
+
 		}
 	})
 }
