@@ -7,6 +7,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/lambher/video-game/conf"
+
 	"github.com/g3n/engine/math32"
 	"github.com/rs/xid"
 
@@ -128,6 +130,7 @@ func main() {
 
 	fmt.Printf("listen on port %d\n", addr.Port)
 
+	go gameLoop()
 	go tick()
 
 	for {
@@ -157,8 +160,21 @@ func main() {
 	}
 }
 
+func gameLoop() {
+	tick := time.Tick(16 * time.Millisecond)
+	t := time.Now()
+	for {
+		select {
+		case <-tick:
+			deltaTime := time.Since(t)
+			t = time.Now()
+			world.Update(deltaTime)
+		}
+	}
+}
+
 func tick() {
-	for range time.Tick(time.Millisecond * 300) {
+	for range time.Tick(conf.TickTime) {
 		refreshPlayers()
 	}
 }

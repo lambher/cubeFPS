@@ -10,6 +10,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/lambher/video-game/conf"
+
 	"github.com/go-gl/glfw/v3.3/glfw"
 	gui2 "github.com/lambher/video-game/gui"
 
@@ -128,7 +130,7 @@ func (g *Game) connect() {
 	defer conn.Close()
 	go g.listen(conn)
 
-	for range time.Tick(time.Millisecond * 300) {
+	for range time.Tick(conf.TickTime) {
 		g.refreshPlayer(conn)
 	}
 }
