@@ -536,7 +536,7 @@ func (g *Game) Update(deltaTime time.Duration) {
 	g.mousePosition = math32.NewVector2(float32(x/2), float32(y/2))
 	g.app.IWindow.(*window.GlfwWindow).SetCursorPos(float64(g.mousePosition.X), float64(g.mousePosition.Y))
 
-	for _, entity := range g.entities {
-		entity.Update()
-	}
+	//for _, entity := range g.entities {
+	//	entity.Update()
+	//}
 }
