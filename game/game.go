@@ -116,7 +116,7 @@ func NewGame(app *app.Application) *Game {
 
 func (g *Game) connect() {
 	p := make([]byte, 2048)
-	conn, err := net.Dial("udp", "5.39.93.173:"+strconv.Itoa(conf.Port))
+	conn, err := net.Dial("udp", conf.Host+":"+strconv.Itoa(conf.Port))
 	if err != nil {
 		fmt.Printf("Some error %v", err)
 		return

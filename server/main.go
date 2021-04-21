@@ -120,7 +120,7 @@ func main() {
 	clients = make(map[string]*Client)
 	addr := net.UDPAddr{
 		Port: conf.Port,
-		IP:   net.ParseIP("127.0.0.1"),
+		IP:   net.ParseIP(conf.Host),
 	}
 	ser, err := net.ListenUDP("udp", &addr)
 	if err != nil {
