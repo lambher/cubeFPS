@@ -160,7 +160,7 @@ func main() {
 			continue
 		}
 		value := string(p[:n])
-		//fmt.Printf("Read a message from %s %s \n", remoteaddr.String(), p)
+		fmt.Printf("Read a message from %s %s \n", remoteaddr.String(), p)
 		if value == "hello" {
 			player := models.NewPlayer(xid.New().String(), &world, "", *math32.NewVec3())
 			clients[remoteaddr.String()] = &Client{
