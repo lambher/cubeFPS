@@ -55,7 +55,7 @@ func (c *Client) handleMove(data []byte) {
 		return
 	}
 
-	c.Player.RefreshMoves(move)
+	c.Player.RefreshMoves(&move)
 }
 
 func (c *Client) handleRefreshPlayer(data []byte) {

@@ -19,28 +19,34 @@ const (
 )
 
 type Player struct {
-	ID                      string
-	Position                *math32.Vector3
-	Direction               *math32.Vector3
-	Velocity                *math32.Vector3
-	Up                      *math32.Vector3
-	VerticalAngle           float32
-	VerticalAngleAngleSpeed float32
-	HorizontalAngle         float32
-	HorizontalAngleSpeed    float32
-	Name                    string
-	hp                      int
-	deleted                 bool
+	ID              string
+	Position        *math32.Vector3
+	Direction       *math32.Vector3
+	Velocity        *math32.Vector3
+	Up              *math32.Vector3
+	VerticalAngle   float32
+	HorizontalAngle float32
+	Name            string
+	hp              int
+	deleted         bool
 
-	moves Moves
+	moves *Moves
 	world *World
 }
 
-type Moves map[string]bool
+type Moves struct {
+	Keys                    map[string]bool
+	VerticalAngleAngleSpeed float32
+	HorizontalAngleSpeed    float32
+}
 
-func newMoves() Moves {
-	return map[string]bool{
-		MoveForward: false,
+func newMoves() *Moves {
+	return &Moves{
+		Keys: map[string]bool{
+			MoveForward: false,
+		},
+		VerticalAngleAngleSpeed: 0,
+		HorizontalAngleSpeed:    0,
 	}
 }
 
@@ -58,14 +64,13 @@ func NewPlayer(id string, world *World, name string, position math32.Vector3) *P
 			Y: 1,
 			Z: 0,
 		},
-		Velocity:                math32.NewVec3(),
-		Name:                    name,
-		VerticalAngle:           0,
-		HorizontalAngle:         0,
-		VerticalAngleAngleSpeed: 0,
-		HorizontalAngleSpeed:    0,
-		hp:                      100,
-		deleted:                 false,
+		Velocity:        math32.NewVec3(),
+		Name:            name,
+		VerticalAngle:   0,
+		HorizontalAngle: 0,
+
+		hp:      100,
+		deleted: false,
 	}
 	player.moves = newMoves()
 	player.world = world
@@ -78,19 +83,19 @@ func (p Player) GetHP() int {
 }
 
 func (p *Player) MoveForward(value bool) {
-	p.moves[MoveForward] = value
+	p.moves.Keys[MoveForward] = value
 }
 
 func (p *Player) MoveBackward(value bool) {
-	p.moves[MoveBackward] = value
+	p.moves.Keys[MoveBackward] = value
 }
 
 func (p *Player) MoveLeft(value bool) {
-	p.moves[MoveLeft] = value
+	p.moves.Keys[MoveLeft] = value
 }
 
 func (p *Player) MoveRight(value bool) {
-	p.moves[MoveRight] = value
+	p.moves.Keys[MoveRight] = value
 }
 
 const maxAngleSpeed = 0.5
@@ -99,44 +104,44 @@ func (p *Player) TurnLeft(value bool, verticalAngleSpeed float32) {
 	if verticalAngleSpeed <= 0 {
 		return
 	}
-	p.moves[TurnLeft] = value
+	p.moves.Keys[TurnLeft] = value
 	if verticalAngleSpeed > maxAngleSpeed {
 		verticalAngleSpeed = maxAngleSpeed
 	}
-	p.VerticalAngleAngleSpeed = verticalAngleSpeed
+	p.moves.VerticalAngleAngleSpeed = verticalAngleSpeed
 }
 
 func (p *Player) TurnRight(value bool, verticalAngleSpeed float32) {
 	if verticalAngleSpeed <= 0 {
 		return
 	}
-	p.moves[TurnRight] = value
+	p.moves.Keys[TurnRight] = value
 	if verticalAngleSpeed > maxAngleSpeed {
 		verticalAngleSpeed = maxAngleSpeed
 	}
-	p.VerticalAngleAngleSpeed = verticalAngleSpeed
+	p.moves.VerticalAngleAngleSpeed = verticalAngleSpeed
 }
 
 func (p *Player) TurnUp(value bool, horizontalAngleSpeed float32) {
 	if horizontalAngleSpeed <= 0 {
 		return
 	}
-	p.moves[TurnUp] = value
+	p.moves.Keys[TurnUp] = value
 	if horizontalAngleSpeed > maxAngleSpeed {
 		horizontalAngleSpeed = maxAngleSpeed
 	}
-	p.HorizontalAngleSpeed = horizontalAngleSpeed
+	p.moves.HorizontalAngleSpeed = horizontalAngleSpeed
 }
 
 func (p *Player) TurnDown(value bool, horizontalAngleSpeed float32) {
 	if horizontalAngleSpeed <= 0 {
 		return
 	}
-	p.moves[TurnDown] = value
+	p.moves.Keys[TurnDown] = value
 	if horizontalAngleSpeed > maxAngleSpeed {
 		horizontalAngleSpeed = maxAngleSpeed
 	}
-	p.HorizontalAngleSpeed = horizontalAngleSpeed
+	p.moves.HorizontalAngleSpeed = horizontalAngleSpeed
 }
 
 func (p Player) GetLeftAxis() *math32.Vector3 {
@@ -144,29 +149,29 @@ func (p Player) GetLeftAxis() *math32.Vector3 {
 }
 
 func (p *Player) updateMoves() {
-	if p.moves[MoveForward] {
+	if p.moves.Keys[MoveForward] {
 		p.Velocity = p.Direction.Clone().MultiplyScalar(0.1)
 	}
-	if p.moves[MoveBackward] {
+	if p.moves.Keys[MoveBackward] {
 		p.Velocity = p.Direction.Clone().MultiplyScalar(-0.1)
 	}
-	if p.moves[MoveLeft] {
+	if p.moves.Keys[MoveLeft] {
 		p.Velocity = p.GetLeftAxis().MultiplyScalar(-0.1)
 	}
-	if p.moves[MoveRight] {
+	if p.moves.Keys[MoveRight] {
 		p.Velocity = p.GetLeftAxis().MultiplyScalar(0.1)
 	}
-	if p.moves[TurnLeft] {
-		p.VerticalAngle = p.VerticalAngleAngleSpeed
+	if p.moves.Keys[TurnLeft] {
+		p.VerticalAngle = p.moves.VerticalAngleAngleSpeed
 	}
-	if p.moves[TurnRight] {
-		p.VerticalAngle = -p.VerticalAngleAngleSpeed
+	if p.moves.Keys[TurnRight] {
+		p.VerticalAngle = -p.moves.VerticalAngleAngleSpeed
 	}
-	if p.moves[TurnUp] {
-		p.HorizontalAngle = p.HorizontalAngleSpeed
+	if p.moves.Keys[TurnUp] {
+		p.HorizontalAngle = p.moves.HorizontalAngleSpeed
 	}
-	if p.moves[TurnDown] {
-		p.HorizontalAngle = -p.HorizontalAngleSpeed
+	if p.moves.Keys[TurnDown] {
+		p.HorizontalAngle = -p.moves.HorizontalAngleSpeed
 	}
 }
 
@@ -233,6 +238,6 @@ func (p *Player) Refresh(player Player) {
 	//p.VerticalAngle = player.VerticalAngle
 }
 
-func (p *Player) RefreshMoves(moves Moves) {
+func (p *Player) RefreshMoves(moves *Moves) {
 	p.moves = moves
 }
