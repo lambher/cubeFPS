@@ -31,7 +31,7 @@ func NewBullet(world *World, player *Player, velocity *math32.Vector3) *Bullet {
 
 func (b *Bullet) Update(deltaTime time.Duration) {
 	b.Position.Add(b.Velocity)
-	for _, player := range b.world.Players {
+	for _, player := range b.world.players {
 		if player != b.Player {
 			if player.GetHitBox().ContainsPoint(b.Position) {
 				player.BulletHit(b)

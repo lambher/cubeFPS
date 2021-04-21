@@ -43,6 +43,7 @@ type Game struct {
 
 func (g *Game) OnAddPlayer(player *models.Player) {
 	if player == g.world.Player {
+		g.Scene.Add(g.menu)
 		return
 	}
 	if g.entities == nil {
@@ -133,7 +134,7 @@ func (g *Game) connect() {
 }
 
 func (g *Game) refreshPlayer(conn net.Conn) {
-	playerData, err := json.Marshal(g.world.Player)
+	playerData, err := g.world.GetPlayerData()
 
 	data := make([]byte, 0)
 
@@ -185,7 +186,7 @@ func (g *Game) handleRefreshPlayer(data []byte) {
 		fmt.Println("player position is null")
 		return
 	}
-	if p, ok := g.world.Players[player.GetID()]; ok {
+	if p := g.world.GetPlayer(player.GetID()); p != nil {
 		p.Refresh(player)
 	}
 }
@@ -281,7 +282,6 @@ func (g *Game) Init() {
 	g.menu.Add(editName)
 	g.menu.Add(startButton)
 	g.menu.Add(exitButton)
-	g.Scene.Add(g.menu)
 
 	g.Cam = camera.New(1)
 	//g.Cam.SetPositionVec(newPlayer.Position)

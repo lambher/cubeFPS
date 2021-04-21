@@ -29,20 +29,6 @@ func (c *Client) sendResponse() {
 	c.populatePlayer()
 
 	world.AddPlayer(c.Player)
-	c.listen()
-}
-
-func (c *Client) listen() {
-	for {
-		p := make([]byte, 2048)
-
-		n, _, err := c.Conn.ReadFromUDP(p)
-		if err != nil {
-			fmt.Printf("Some error  %v", err)
-			return
-		}
-		c.parse(string(p[:n]))
-	}
 }
 
 func (c *Client) parse(message string) {
@@ -123,7 +109,7 @@ func (c *Client) addPlayer(player *models.Player) {
 }
 
 func (c *Client) sendList() {
-	for _, player := range world.Players {
+	for _, player := range world.GetPlayers() {
 		c.addPlayer(player)
 	}
 }
@@ -179,7 +165,7 @@ func tick() {
 
 func refreshPlayers() {
 	for _, client := range clients {
-		for _, player := range world.Players {
+		for _, player := range world.GetPlayers() {
 			client.refreshPlayer(player)
 		}
 	}
