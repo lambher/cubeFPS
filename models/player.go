@@ -234,8 +234,8 @@ func (p *Player) Refresh(player Player) {
 	p.Position = player.Position
 	p.Direction = player.Direction
 	p.Velocity = player.Velocity
-	//p.HorizontalAngle = player.HorizontalAngle
-	//p.VerticalAngle = player.VerticalAngle
+	p.HorizontalAngle = player.HorizontalAngle
+	p.VerticalAngle = player.VerticalAngle
 }
 
 func (p *Player) RefreshMoves(moves *Moves) {
