@@ -233,6 +233,6 @@ func (p *Player) Refresh(player Player) {
 	//p.VerticalAngle = player.VerticalAngle
 }
 
-func (p *Player) RefreshMoves(player Player) {
-	p.moves = player.moves
+func (p *Player) RefreshMoves(moves Moves) {
+	p.moves = moves
 }

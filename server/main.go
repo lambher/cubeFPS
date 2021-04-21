@@ -42,24 +42,20 @@ func (c *Client) parse(message string) {
 	case "refresh_player":
 		c.handleRefreshPlayer([]byte(messages[1]))
 	case "move":
-		c.handleRefreshPlayer([]byte(messages[1]))
+		c.handleMove([]byte(messages[1]))
 	}
 }
 
 func (c *Client) handleMove(data []byte) {
-	var player models.Player
+	var move models.Moves
 
-	err := json.Unmarshal(data, &player)
+	err := json.Unmarshal(data, &move)
 	if err != nil {
 		fmt.Println(err)
 		return
 	}
-	if player.Position == nil {
-		fmt.Println("player position is null")
-		return
-	}
 
-	c.Player.RefreshMoves(player)
+	c.Player.RefreshMoves(move)
 }
 
 func (c *Client) handleRefreshPlayer(data []byte) {
