@@ -42,6 +42,8 @@ type Game struct {
 	mousePosition *math32.Vector2
 
 	entities map[string]entities.Entity
+
+	conn net.Conn
 }
 
 func (g *Game) OnAddPlayer(player *models.Player) {
@@ -116,27 +118,24 @@ func NewGame(app *app.Application) *Game {
 
 func (g *Game) connect() {
 	p := make([]byte, 2048)
-	conn, err := net.Dial("udp", conf.Host+":"+strconv.Itoa(conf.Port))
+	var err error
+	g.conn, err = net.Dial("udp", conf.Host+":"+strconv.Itoa(conf.Port))
 	if err != nil {
 		fmt.Printf("Some error %v", err)
 		return
 	}
-	fmt.Fprintf(conn, "hello")
-	n, err := bufio.NewReader(conn).Read(p)
+	fmt.Fprintf(g.conn, "hello")
+	n, err := bufio.NewReader(g.conn).Read(p)
 	if err == nil {
 		g.parse(string(p[:n]))
 	} else {
 		fmt.Printf("Some error %v\n", err)
 	}
-	defer conn.Close()
-	go g.listen(conn)
-
-	for range time.Tick(conf.TickTimeClient) {
-		g.refreshPlayer(conn)
-	}
+	defer g.conn.Close()
+	g.listen()
 }
 
-func (g *Game) refreshPlayer(conn net.Conn) {
+func (g *Game) refreshPlayer() {
 	playerData, err := g.world.GetPlayerData()
 
 	data := make([]byte, 0)
@@ -144,16 +143,30 @@ func (g *Game) refreshPlayer(conn net.Conn) {
 	data = append(data, []byte("refresh_player\n")...)
 	data = append(data, playerData...)
 
-	_, err = fmt.Fprintf(conn, string(data))
+	_, err = fmt.Fprintf(g.conn, string(data))
 	if err != nil {
 		fmt.Println(err)
 	}
 }
 
-func (g *Game) listen(conn net.Conn) {
+func (g *Game) sendMove() {
+	playerMoveData, err := g.world.GetPlayerMoveData()
+
+	data := make([]byte, 0)
+
+	data = append(data, []byte("move\n")...)
+	data = append(data, playerMoveData...)
+
+	_, err = fmt.Fprintf(g.conn, string(data))
+	if err != nil {
+		fmt.Println(err)
+	}
+}
+
+func (g *Game) listen() {
 	for {
 		p := make([]byte, 2048)
-		n, err := bufio.NewReader(conn).Read(p)
+		n, err := bufio.NewReader(g.conn).Read(p)
 		if err == nil {
 			g.parse(string(p[:n]))
 		} else {
@@ -355,6 +368,7 @@ func (g *Game) Init() {
 //}
 
 func (g *Game) start() {
+	g.refreshPlayer()
 	g.Scene.Remove(g.menu)
 	g.app.IWindow.(*window.GlfwWindow).SetInputMode(glfw.CursorMode, glfw.CursorHidden)
 	g.started = true
@@ -382,27 +396,35 @@ func (g *Game) listenEvent() {
 		if keyEvent, ok := ev.(*window.KeyEvent); ok {
 			if keyEvent.Key == window.KeyW {
 				g.world.Player.MoveForward(true)
+				g.sendMove()
 			}
 			if keyEvent.Key == window.KeyS {
 				g.world.Player.MoveBackward(true)
+				g.sendMove()
 			}
 			if keyEvent.Key == window.KeyD {
 				g.world.Player.MoveRight(true)
+				g.sendMove()
 			}
 			if keyEvent.Key == window.KeyA {
 				g.world.Player.MoveLeft(true)
+				g.sendMove()
 			}
 			if keyEvent.Key == window.KeyLeft {
 				g.world.Player.TurnLeft(true, 0.5)
+				g.sendMove()
 			}
 			if keyEvent.Key == window.KeyRight {
 				g.world.Player.TurnRight(true, 0.5)
+				g.sendMove()
 			}
 			if keyEvent.Key == window.KeyUp {
 				g.world.Player.TurnUp(true, 0.5)
+				g.sendMove()
 			}
 			if keyEvent.Key == window.KeyDown {
 				g.world.Player.TurnDown(true, 0.5)
+				g.sendMove()
 			}
 
 			if keyEvent.Key == window.KeyEscape {
@@ -418,27 +440,35 @@ func (g *Game) listenEvent() {
 		if keyEvent, ok := ev.(*window.KeyEvent); ok {
 			if keyEvent.Key == window.KeyW {
 				g.world.Player.MoveForward(false)
+				g.sendMove()
 			}
 			if keyEvent.Key == window.KeyS {
 				g.world.Player.MoveBackward(false)
+				g.sendMove()
 			}
 			if keyEvent.Key == window.KeyD {
 				g.world.Player.MoveRight(false)
+				g.sendMove()
 			}
 			if keyEvent.Key == window.KeyA {
 				g.world.Player.MoveLeft(false)
+				g.sendMove()
 			}
 			if keyEvent.Key == window.KeyLeft {
 				g.world.Player.TurnLeft(false, 0.01)
+				g.sendMove()
 			}
 			if keyEvent.Key == window.KeyRight {
 				g.world.Player.TurnRight(false, 0.01)
+				g.sendMove()
 			}
 			if keyEvent.Key == window.KeyUp {
 				g.world.Player.TurnUp(false, 0.01)
+				g.sendMove()
 			}
 			if keyEvent.Key == window.KeyDown {
 				g.world.Player.TurnDown(false, 0.01)
+				g.sendMove()
 			}
 		}
 	})

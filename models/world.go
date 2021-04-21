@@ -31,6 +31,14 @@ func (w *World) GetPlayerData() ([]byte, error) {
 	return playerData, err
 }
 
+func (w *World) GetPlayerMoveData() ([]byte, error) {
+	w.playerLock.Lock()
+	moveData, err := json.Marshal(w.Player.moves)
+	w.playerLock.Unlock()
+
+	return moveData, err
+}
+
 func (w *World) GetPlayer(id string) *Player {
 	var player *Player
 
