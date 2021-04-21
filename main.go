@@ -6,13 +6,12 @@ import (
 	"github.com/g3n/engine/app"
 	"github.com/g3n/engine/gls"
 	"github.com/g3n/engine/renderer"
-	"github.com/g3n/engine/window"
 	"github.com/lambher/video-game/game"
 )
 
 func main() {
 	a := app.App()
-	window.Get().(*window.GlfwWindow).SetFullscreen(true)
+	//window.Get().(*window.GlfwWindow).SetFullscreen(true)
 
 	g := game.NewGame(a)
 

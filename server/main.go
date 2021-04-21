@@ -43,7 +43,14 @@ func (c *Client) parse(message string) {
 		c.handleRefreshPlayer([]byte(messages[1]))
 	case "move":
 		c.handleMove([]byte(messages[1]))
+	case "fire":
+		c.handleFire()
 	}
+}
+
+func (c *Client) handleFire() {
+	c.Player.Fire()
+	c.sendFires()
 }
 
 func (c *Client) handleMove(data []byte) {
@@ -127,6 +134,26 @@ func (c *Client) addPlayer(player *models.Player) {
 func (c *Client) sendList() {
 	for _, player := range world.GetPlayers() {
 		c.addPlayer(player)
+	}
+}
+
+func (c *Client) sendFires() {
+	for _, client := range clients {
+		client.sendFire(c.Player)
+	}
+}
+
+func (c *Client) sendFire(player *models.Player) {
+	playerData, err := json.Marshal(player)
+
+	data := make([]byte, 0)
+
+	data = append(data, []byte("fire\n")...)
+	data = append(data, playerData...)
+
+	_, err = c.Conn.WriteToUDP(data, c.Addr)
+	if err != nil {
+		fmt.Println(err)
 	}
 }
 

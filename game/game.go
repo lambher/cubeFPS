@@ -163,6 +163,17 @@ func (g *Game) sendMove() {
 	}
 }
 
+func (g *Game) sendFire() {
+	data := make([]byte, 0)
+
+	data = append(data, []byte("fire\n")...)
+
+	_, err := fmt.Fprintf(g.conn, string(data))
+	if err != nil {
+		fmt.Println(err)
+	}
+}
+
 func (g *Game) listen() {
 	for {
 		p := make([]byte, 2048)
@@ -187,6 +198,8 @@ func (g *Game) parse(message string) {
 		g.handleAddPlayer([]byte(messages[1]))
 	case "refresh_player":
 		g.handleRefreshPlayer([]byte(messages[1]))
+	case "fire":
+		g.handleFire([]byte(messages[1]))
 	}
 }
 
@@ -204,6 +217,24 @@ func (g *Game) handleRefreshPlayer(data []byte) {
 	}
 	if p := g.world.GetPlayer(player.GetID()); p != nil {
 		p.Refresh(player)
+	}
+}
+
+func (g *Game) handleFire(data []byte) {
+	var player models.Player
+
+	err := json.Unmarshal(data, &player)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+	if player.Position == nil {
+		fmt.Println("player position is null")
+		return
+	}
+	if p := g.world.GetPlayer(player.GetID()); p != nil {
+		p.Refresh(player)
+		p.Fire()
 	}
 }
 
@@ -479,7 +510,7 @@ func (g *Game) listenEvent() {
 		}
 		if mouseEvent, ok := ev.(*window.MouseEvent); ok {
 			if mouseEvent.Button == window.MouseButton1 {
-				g.world.Player.Fire()
+				g.sendFire()
 			}
 		}
 	})
@@ -528,7 +559,8 @@ func (g *Game) Update(deltaTime time.Duration) {
 
 	//g.axes.SetDirectionVec(g.world.Player.Direction)
 	g.gui.Update()
-	g.world.Update(deltaTime)
+	//g.world.Player.Update(deltaTime)
+	g.world.UpdatePositions(deltaTime)
 	g.Cam.SetPositionVec(g.world.Player.Position)
 	//g.cam.SetDirectionVec(g.world.Player.Direction)
 	g.Cam.LookAt(g.world.Player.Direction.Clone().Add(g.world.Player.Position), g.world.Player.Up)
@@ -536,7 +568,7 @@ func (g *Game) Update(deltaTime time.Duration) {
 	g.mousePosition = math32.NewVector2(float32(x/2), float32(y/2))
 	g.app.IWindow.(*window.GlfwWindow).SetCursorPos(float64(g.mousePosition.X), float64(g.mousePosition.Y))
 
-	//for _, entity := range g.entities {
-	//	entity.Update()
-	//}
+	for _, entity := range g.entities {
+		entity.Update()
+	}
 }

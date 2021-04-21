@@ -120,3 +120,13 @@ func (w *World) Update(deltaTime time.Duration) {
 	}
 	w.models = models
 }
+
+func (w *World) UpdatePositions(deltaTime time.Duration) {
+	for _, player := range w.players {
+		player.UpdatePosition(deltaTime)
+	}
+
+	for _, model := range w.models {
+		model.UpdatePosition(deltaTime)
+	}
+}

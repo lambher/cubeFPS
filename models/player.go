@@ -205,6 +205,10 @@ func (p *Player) Update(deltaTime time.Duration) {
 	p.HorizontalAngle *= 0.8
 }
 
+func (p *Player) UpdatePosition(deltaTime time.Duration) {
+	p.Position.Add(p.Velocity)
+}
+
 func (p Player) IsDeleted() bool {
 	return p.deleted
 }

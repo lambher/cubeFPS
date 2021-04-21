@@ -44,6 +44,10 @@ func (b *Bullet) Update(deltaTime time.Duration) {
 	}
 }
 
+func (b *Bullet) UpdatePosition(deltaTime time.Duration) {
+	b.Position.Add(b.Velocity)
+}
+
 func (b Bullet) IsDeleted() bool {
 	return b.deleted
 }
