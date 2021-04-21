@@ -2,4 +2,5 @@ package conf
 
 import "time"
 
-const TickTime = time.Millisecond * 100
+const TickTimeClient = time.Millisecond * 50
+const TickTimeServer = time.Millisecond * 500

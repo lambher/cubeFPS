@@ -57,7 +57,7 @@ func (c *Client) handleRefreshPlayer(data []byte) {
 		return
 	}
 
-	c.Player.Refresh(player)
+	c.Player.RefreshMoves(player)
 }
 
 func (c *Client) populatePlayer() {
@@ -174,7 +174,7 @@ func gameLoop() {
 }
 
 func tick() {
-	for range time.Tick(conf.TickTime) {
+	for range time.Tick(conf.TickTimeServer) {
 		refreshPlayers()
 	}
 }

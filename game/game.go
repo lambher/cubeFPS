@@ -130,7 +130,7 @@ func (g *Game) connect() {
 	defer conn.Close()
 	go g.listen(conn)
 
-	for range time.Tick(conf.TickTime) {
+	for range time.Tick(conf.TickTimeClient) {
 		g.refreshPlayer(conn)
 	}
 }

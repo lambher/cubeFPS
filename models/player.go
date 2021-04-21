@@ -232,3 +232,11 @@ func (p *Player) Refresh(player Player) {
 	p.HorizontalAngle = player.HorizontalAngle
 	p.VerticalAngle = player.VerticalAngle
 }
+
+func (p *Player) RefreshMoves(player Player) {
+	p.Up = player.Up
+	p.Moves = player.Moves
+	p.Direction = player.Direction
+	p.HorizontalAngle = player.HorizontalAngle
+	p.VerticalAngle = player.VerticalAngle
+}
