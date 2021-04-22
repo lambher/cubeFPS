@@ -25,11 +25,19 @@ func NewPlayer(model *models.Player) *Player {
 	player.model = model
 	player.Mesh = graphic.NewMesh(player.geometry, player.material)
 	player.Mesh.SetPositionVec(player.model.Position)
+
+	m := material.NewStandard(math32.NewColor("DarkRed"))
+	g := geometry.NewCube(0.5)
+	mesh := graphic.NewMesh(g, m)
+	mesh.SetPositionVec(model.Position.Clone().Add(model.Direction))
+	player.Mesh.Add(mesh)
+
 	return &player
 }
 
 func (p *Player) Update() {
 	p.Mesh.SetPositionVec(p.model.Position)
+	p.Mesh.LookAt(p.model.GetLookAt(), p.model.Up)
 }
 
 func (p Player) GetMesh() *graphic.Mesh {

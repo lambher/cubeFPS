@@ -148,6 +148,10 @@ func (p Player) GetLeftAxis() *math32.Vector3 {
 	return p.Direction.Clone().ApplyAxisAngle(p.Up, -math32.Pi/2)
 }
 
+func (p Player) GetLookAt() *math32.Vector3 {
+	return p.Position.Clone().Add(p.Direction)
+}
+
 func (p *Player) updateMoves() {
 	if p.moves.Keys[MoveForward] {
 		p.Velocity = p.Direction.Clone().MultiplyScalar(0.1)

@@ -50,6 +50,9 @@ func NewGUI(world *models.World, width, height int) *GUI {
 }
 
 func (g *GUI) Update() {
+	if g.world.Player == nil {
+		return
+	}
 	g.hpLabel.SetText(fmt.Sprintf("HP:%d", g.world.Player.GetHP()))
 	g.nameLabel.SetText(fmt.Sprintf("%s", g.world.Player.Name))
 }

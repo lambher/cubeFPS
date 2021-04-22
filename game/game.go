@@ -578,9 +578,6 @@ func (g *Game) SendExit() {
 }
 
 func (g *Game) Update(deltaTime time.Duration) {
-	if !g.started {
-		return
-	}
 
 	//g.axes.SetDirectionVec(g.world.Player.Direction)
 	g.gui.Update()
@@ -589,9 +586,12 @@ func (g *Game) Update(deltaTime time.Duration) {
 	g.Cam.SetPositionVec(g.world.Player.Position)
 	//g.cam.SetDirectionVec(g.world.Player.Direction)
 	g.Cam.LookAt(g.world.Player.Direction.Clone().Add(g.world.Player.Position), g.world.Player.Up)
-	x, y := g.app.GetSize()
-	g.mousePosition = math32.NewVector2(float32(x/2), float32(y/2))
-	g.app.IWindow.(*window.GlfwWindow).SetCursorPos(float64(g.mousePosition.X), float64(g.mousePosition.Y))
+
+	if g.started {
+		x, y := g.app.GetSize()
+		g.mousePosition = math32.NewVector2(float32(x/2), float32(y/2))
+		g.app.IWindow.(*window.GlfwWindow).SetCursorPos(float64(g.mousePosition.X), float64(g.mousePosition.Y))
+	}
 
 	for _, entity := range g.entities {
 		entity.Update()
