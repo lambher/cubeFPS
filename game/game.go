@@ -578,6 +578,9 @@ func (g *Game) SendExit() {
 }
 
 func (g *Game) Update(deltaTime time.Duration) {
+	if g.world.Player == nil {
+		return
+	}
 
 	//g.axes.SetDirectionVec(g.world.Player.Direction)
 	g.gui.Update()
